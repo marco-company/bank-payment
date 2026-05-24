@@ -9,15 +9,15 @@ msgstr ""
 "Project-Id-Version: Odoo Server 11.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-05-25 12:38+0000\n"
-"PO-Revision-Date: 2023-04-12 10:07+0000\n"
-"Last-Translator: gelo joga Rodríguez <gelo.joga@factorlibre.com>\n"
+"PO-Revision-Date: 2026-03-09 12:45+0000\n"
+"Last-Translator: Víctor Martínez <victor.martinez@tecnativa.com>\n"
 "Language-Team: Spanish (https://www.transifex.com/oca/teams/23907/es/)\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #. module: account_payment_partner
 #: model_terms:ir.ui.view,arch_db:account_payment_partner.account_payment_mode_form
@@ -75,6 +75,16 @@ msgid "Bank account from journals"
 msgstr "Cuenta bancaria de los diarios"
 
 #. module: account_payment_partner
+#: model:ir.model,name:account_payment_partner.model_res_company
+msgid "Companies"
+msgstr "Compañías"
+
+#. module: account_payment_partner
+#: model:ir.model,name:account_payment_partner.model_res_config_settings
+msgid "Config Settings"
+msgstr ""
+
+#. module: account_payment_partner
 #: model:ir.model,name:account_payment_partner.model_res_partner
 msgid "Contact"
 msgstr "Contacto"
@@ -116,6 +126,26 @@ msgstr "Entrada de Diario"
 #: model:ir.model,name:account_payment_partner.model_account_move_line
 msgid "Journal Item"
 msgstr "Apunte contable"
+
+#. module: account_payment_partner
+#: model:ir.model.fields,field_description:account_payment_partner.field_res_company__keep_partner_bank_without_payment_mode
+#: model:ir.model.fields,field_description:account_payment_partner.field_res_config_settings__keep_partner_bank_without_payment_mode
+msgid "Keep Bank Account Without Payment Mode"
+msgstr "Mantener cuenta bancaria sin modo de pago"
+
+#. module: account_payment_partner
+#: model_terms:ir.ui.view,arch_db:account_payment_partner.res_config_settings_view_form
+msgid ""
+"Keep the bank account auto-selected by Odoo\n"
+"                            on invoices without a payment mode. Disable\n"
+"                            to clear the bank account when no payment\n"
+"                            mode is set."
+msgstr ""
+"Mantener la cuenta bancaria seleccionada automáticamente por Odoo\n"
+"                            en facturas sin método de pago. Desactivar\n"
+"                            para vaciar la cuenta bancaria cuando no se "
+"establece\n"
+"                            ningún método de pago."
 
 #. module: account_payment_partner
 #: model:ir.model.fields.selection,name:account_payment_partner.selection__account_payment_mode__show_bank_account__last
@@ -237,6 +267,18 @@ msgid ""
 msgstr ""
 "Este modo de pago se utilizará cuando se realicen facturas rectificativas "
 "provenientes del modo de pago actual."
+
+#. module: account_payment_partner
+#: model:ir.model.fields,help:account_payment_partner.field_res_company__keep_partner_bank_without_payment_mode
+#: model:ir.model.fields,help:account_payment_partner.field_res_config_settings__keep_partner_bank_without_payment_mode
+msgid ""
+"When enabled, invoices without a payment mode will keep the bank account "
+"auto-selected by Odoo. When disabled, the bank account will be cleared if no "
+"payment mode is set."
+msgstr ""
+"Al habilitar esta opción, las facturas sin método de pago conservarán la "
+"cuenta bancaria seleccionada automáticamente por Odoo. Al deshabilitarla, se "
+"borrará la cuenta bancaria si no se configura ningún método de pago."
 
 #. module: account_payment_partner
 #. odoo-python

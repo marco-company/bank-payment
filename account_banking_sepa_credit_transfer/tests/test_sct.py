@@ -1,6 +1,7 @@
 # Copyright 2016 Akretion (Alexis de Lattre <alexis.delattre@akretion.com>)
 # Copyright 2020 Sygel Technology - Valentin Vinagre
 # Copyright 2018-2022 Tecnativa - Pedro M. Baeza
+# Copyright 2026 Therp BV <https://therp.nl>.
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
 import base64
@@ -28,15 +29,21 @@ class TestSCT(TransactionCase):
         cls.attachment_model = cls.env["ir.attachment"]
         cls.invoice_model = cls.env["account.move"]
         cls.invoice_line_model = cls.env["account.move.line"]
-        cls.partner_agrolait = cls.env.ref("base.res_partner_2")
-        cls.partner_asus = cls.env.ref("base.res_partner_1")
-        cls.partner_c2c = cls.env.ref("base.res_partner_12")
+        cls.partner_agrolait = cls.env["res.partner"].create({"name": "Agrolait"})
+        cls.partner_asus = cls.env["res.partner"].create({"name": "Asus"})
+        cls.partner_c2c = cls.env["res.partner"].create({"name": "C2C"})
         cls.eur_currency = cls.env.ref("base.EUR")
         cls.eur_currency.active = True
         cls.usd_currency = cls.env.ref("base.USD")
         cls.usd_currency.active = True
         cls.main_company = cls.env["res.company"].create(
-            {"name": "Test EUR company", "currency_id": cls.eur_currency.id}
+            {
+                "name": "Test EUR company",
+                "currency_id": cls.eur_currency.id,
+                "country_id": cls.env.ref("base.fr").id,
+                "city": "Paris",
+                "street": "Avenue des Champs-Élysées 2",
+            }
         )
         cls.partner_agrolait.company_id = cls.main_company.id
         cls.partner_asus.company_id = cls.main_company.id
@@ -82,13 +89,65 @@ class TestSCT(TransactionCase):
                 "company_id": cls.main_company.id,
             }
         )
-        cls.partner_bank = cls.env.ref("account_payment_mode.main_company_iban").copy(
+        cls.bank = cls.env["res.bank"].create(
             {
-                "company_id": cls.main_company.id,
+                "name": "La Banque Postale",
+                "bic": "PSSTFRPPXXX",
+                "street": "115 rue de Sèvres",
+                "zip": "75007",
+                "city": "Paris",
+                "country": cls.env.ref("base.fr").id,
+            }
+        )
+        cls.bank_1 = cls.env["res.bank"].create(
+            {
+                "name": "La Banque Postale",
+                "bic": "PSSTFRPPXXX",
+                "street": "115 rue de Sèvres",
+                "zip": "75007",
+                "city": "Paris",
+                "country": cls.env.ref("base.fr").id,
+            }
+        )
+        cls.bank_2 = cls.env["res.bank"].create(
+            {
+                "name": "BNP Paribas Fortis Charleroi",
+                "bic": "GEBABEBB03A",
+                "city": "Charleroi",
+                "country": cls.env.ref("base.be").id,
+            }
+        )
+        cls.partner_bank = cls.env["res.partner.bank"].create(
+            {
+                "acc_number": "ES52 0182 2782 5688 3882 1868",
+                "bank_id": cls.bank.id,
                 "partner_id": cls.main_company.partner_id.id,
-                "bank_id": (
-                    cls.env.ref("account_payment_mode.bank_la_banque_postale").id
-                ),
+                "company_id": cls.main_company.id,
+            }
+        )
+        cls.partner_1 = cls.env["res.partner"].create(
+            {
+                "name": "Test Partner 1",
+            }
+        )
+        cls.partner_bank_1 = cls.env["res.partner.bank"].create(
+            {
+                "acc_number": "FR66 1212 1212 1212 1212 1212 121",
+                "bank_id": cls.bank.id,
+                "partner_id": cls.partner_1.id,
+                "allow_out_payment": True,
+            }
+        )
+        cls.partner_2 = cls.env["res.partner"].create(
+            {
+                "name": "Test Partner 2",
+            }
+        )
+        cls.partner_bank_2 = cls.env["res.partner.bank"].create(
+            {
+                "acc_number": "BE96 9988 7766 5544",
+                "bank_id": cls.bank_2.id,
+                "partner_id": cls.partner_2.id,
             }
         )
         cls.bank_journal = cls.journal_model.create(
@@ -115,11 +174,16 @@ class TestSCT(TransactionCase):
         )
 
         # update payment mode
-        cls.payment_mode = cls.env.ref(
-            "account_banking_sepa_credit_transfer.payment_mode_outbound_sepa_ct1"
-        ).copy({"company_id": cls.main_company.id})
-        cls.payment_mode.write(
-            {"bank_account_link": "fixed", "fixed_journal_id": cls.bank_journal.id}
+        cls.payment_mode = cls.env["account.payment.mode"].create(
+            {
+                "name": "SEPA Credit Transfer to suppliers",
+                "company_id": cls.main_company.id,
+                "payment_method_id": cls.env.ref(
+                    "account_banking_sepa_credit_transfer.sepa_credit_transfer"
+                ).id,
+                "bank_account_link": "fixed",
+                "fixed_journal_id": cls.bank_journal.id,
+            }
         )
         # Trigger the recompute of account type on res.partner.bank
         cls.partner_bank_model.search([])._compute_acc_type()
@@ -141,6 +205,24 @@ class TestSCT(TransactionCase):
         self.payment_mode.payment_method_id.pain_version = "pain.001.001.05"
         self.check_eur_currency_sct()
 
+    def test_pain_001_09_minimal_address(self):
+        self.payment_mode.payment_method_id.write(
+            {
+                "pain_version": "pain.001.001.09",
+                "sepa_pain09_address_mode": "minimal",
+            }
+        )
+        self.check_eur_currency_sct()
+
+    def test_pain_001_09_hybrid_address(self):
+        self.payment_mode.payment_method_id.write(
+            {
+                "pain_version": "pain.001.001.09",
+                "sepa_pain09_address_mode": "hybrid",
+            }
+        )
+        self.check_eur_currency_sct()
+
     def test_pain_003_03(self):
         self.payment_mode.payment_method_id.pain_version = "pain.001.003.03"
         self.check_eur_currency_sct()
@@ -148,21 +230,21 @@ class TestSCT(TransactionCase):
     def check_eur_currency_sct(self):
         invoice1 = self.create_invoice(
             self.partner_agrolait.id,
-            "account_payment_mode.res_partner_2_iban",
+            self.partner_bank_1,
             self.eur_currency.id,
             42.0,
             "F1341",
         )
         invoice2 = self.create_invoice(
             self.partner_agrolait.id,
-            "account_payment_mode.res_partner_2_iban",
+            self.partner_bank_1,
             self.eur_currency.id,
             12.0,
             "F1342",
         )
         invoice3 = self.create_invoice(
             self.partner_agrolait.id,
-            "account_payment_mode.res_partner_2_iban",
+            self.partner_bank_1,
             self.eur_currency.id,
             5.0,
             "A1301",
@@ -170,14 +252,14 @@ class TestSCT(TransactionCase):
         )
         invoice4 = self.create_invoice(
             self.partner_c2c.id,
-            "account_payment_mode.res_partner_12_iban",
+            self.partner_bank_2,
             self.eur_currency.id,
             11.0,
             "I1642",
         )
         invoice5 = self.create_invoice(
             self.partner_c2c.id,
-            "account_payment_mode.res_partner_12_iban",
+            self.partner_bank_2,
             self.eur_currency.id,
             41.0,
             "I1643",
@@ -235,6 +317,16 @@ class TestSCT(TransactionCase):
         namespaces = xml_root.nsmap
         namespaces["p"] = xml_root.nsmap[None]
         namespaces.pop(None)
+        if self.payment_mode.payment_method_id.pain_version == "pain.001.001.09":
+            twn = xml_root.xpath("//p:PstlAdr/p:TwnNm", namespaces=namespaces)
+            ctry = xml_root.xpath("//p:PstlAdr/p:Ctry", namespaces=namespaces)
+            self.assertTrue(twn)
+            self.assertTrue(ctry)
+            adr_lines = xml_root.xpath("//p:PstlAdr/p:AdrLine", namespaces=namespaces)
+            if self.payment_mode.payment_method_id.sepa_pain09_address_mode == "hybrid":
+                self.assertGreaterEqual(len(adr_lines), 1)
+            else:
+                self.assertEqual(len(adr_lines), 0)
         pay_method_xpath = xml_root.xpath("//p:PmtInf/p:PmtMtd", namespaces=namespaces)
         self.assertEqual(pay_method_xpath[0].text, "TRF")
         sepa_xpath = xml_root.xpath(
@@ -261,14 +353,14 @@ class TestSCT(TransactionCase):
     def test_usd_currency_sct(self):
         invoice1 = self.create_invoice(
             self.partner_asus.id,
-            "account_payment_mode.res_partner_2_iban",
+            self.partner_bank_1,
             self.usd_currency.id,
             2042.0,
             "Inv9032",
         )
         invoice2 = self.create_invoice(
             self.partner_asus.id,
-            "account_payment_mode.res_partner_2_iban",
+            self.partner_bank_1,
             self.usd_currency.id,
             1012.0,
             "Inv9033",
@@ -339,14 +431,12 @@ class TestSCT(TransactionCase):
     def create_invoice(
         cls,
         partner_id,
-        partner_bank_xmlid,
+        partner_bank,
         currency_id,
         price_unit,
         reference,
         move_type="in_invoice",
     ):
-        partner_bank = cls.env.ref(partner_bank_xmlid)
-        partner_bank.write({"company_id": False})
         data = {
             "partner_id": partner_id,
             "reference_type": "none",
